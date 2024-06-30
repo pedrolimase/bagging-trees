@@ -1,0 +1,305 @@
+---
+format:
+  pdf:
+    documentclass: article
+    fontsize: 12pt
+    margin-left: 30mm
+    margin-top: 30mm
+    margin-right: 20mm
+    margin-bottom: 20mm
+    include-in-header:
+      - "preamble.tex"
+    include-before-body:
+      - "firststyle.tex"
+execute:
+  warning: false
+  message: false
+  error: false
+fig-pos: 'H'
+fig-align: center
+# fig-width: 4
+# fig-height: 2.5
+editor: visual
+lang: "pt-BR"
+---
+
+```{=latex}
+Tópicos em Estatística 2 \hfill \textbf{Prof.:} George von Borries
+
+\begin{center}
+  \today \\
+  \Large \textbf{Bagging em Árvores de Decisão: \\
+  Melhorando a estabilidade e acurácia \\ {\normalsize Grupo 3}} \\
+  Joao Victor de Oliveira Nogueira \\
+  Pedro Henrique Lima de Menezes \\
+  Rafael Costa Ramos \\
+  Vinicius Martins Tostes
+\end{center}
+```
+```{r}
+#| eval: false
+#| echo: false
+
+# Apresentações sobre Classificação em GMM e Árvores de Decisão.
+#
+# - Exemplo de classificação com mistura de normais - 27/06/24.
+#   (César, Gabriela, João Vitor, Kevyn)
+#
+# - Terminologia de árvores de decisão - 27/06/24.
+#   (Jéssica, Luís Felipe, Maria Luiza, Rayssa)
+#
+# - Técnica bagging em árvores de decisão - 02/07/24.
+#   (João Victor, Pedro, Rafael, Vinícius)
+#
+# - Técnica Random Forest em árvores de decisão - 02/07/24.
+#   (Bruno, João Alberto, João Pedro, Stefan)
+```
+
+## O que são ensembles?
+
+O *ensemble* é uma técnica de machine learning que combina múltiplos modelos de classificação ou regressão buscando aumentar a estabilidade e acurácia para além de qualquer modelo individual que o compõe. A motivação é a mesma da ideia de que os votos ou palpites de um grupo de pessoas serão em geral melhores que os votos ou palpites de uma dessas pessoas apenas (sabedoria das multidões).
+
+::: {#fig-ensemble}
+![](https://images.datacamp.com/image/upload/v1700592030/image7_3e2d0cd6d9.png){width=60%}
+
+Ilustração de ensemble ([DataCamp](https://datacamp.com/tutorial/what-bagging-in-machine-learning-a-guide-with-examples)).
+:::
+
+Dentre os algoritmos mais populares de ensemble estão o *bagging*, o *boosting* e o *stacking*. Nesta apresentação falaremos acerca do bagging.
+
+## O que é o Bagging?
+
+O Bagging é um algoritmo de ensemble que agrega múltiplas *versões* de um mesmo preditor para aumentar a estabilidade e a acurácia em problemas de regressão e classificação. Sua importância é reduzir a variância de estimativas, aumentando a sua estabilidade, e evitar o *overfitting*.
+
+### Por que fazer Bagging?
+
+Apesar de podermos aplicar o bagging sobre qualquer método preditivo, ele é particularmente útil para métodos instáveis, cujas estimativas variam muito de ajuste para ajuste. E esse é o caso das árvores de decisão.
+
+A natureza de particionamento das árvores de decisão fornece flexibilidade e capacidade de ajuste ilimitados a elas. Isto é, com *splits* suficientes, é sempre possível obter o ajuste "perfeito". Porém isso vem a dois custos principais:
+
+(i) Árvores de decisão facilmente podem não generalizar bem para fora do conjunto de treinamento (*overfitting*) se não ajustadas e validadas com cuidado;
+
+(ii) Alteração mínimas no conjunto de dados podem resultar em árvores completamente diferentes (instabilidade).
+
+Além das árvores de decisão, Breiman (1996) traz em seu paper original um outro exemplo de aplicação do Bagging envolvendo métodos de seleção de preditores (*best subset selection*, *stepwise selection*, etc.) em regressão linear, que também são procedimentos instáveis.
+
+### O algoritmo de Bagging
+
+O meta-algoritmo de Bagging proposto por Breiman (1996) consiste em ajustar um mesmo método preditivo a diferentes reamostras de bootstrap do conjuntos de dados.
+
+::: {#fig-bagging}
+![](https://images.datacamp.com/image/upload/v1700592080/image3_78e8da325b.png){width=75%}
+
+O algoritmo de Bagging ([DataCamp](https://datacamp.com/tutorial/what-bagging-in-machine-learning-a-guide-with-examples)).
+:::
+
+Seja $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^n$ um conjunto de dados de tamanho $n$ composto por pares de preditores $\mathrm{x}$ e variável resposta $y$. Considere ainda $\{\mathcal{D}_b\}_{b=1}^B$ um conjunto de $B$ diferentes amostras aleatórias, de mesmo tamanho $n$, com reposição (boostrap) do conjunto $\mathcal{D}$.
+
+Assim, para cada amostra $\mathcal{D}_b$ ajusta-se um preditor $\hat{y}_b(\mathbf{x}) = \hat{y}(\mathbf{x}; \mathcal{D}_b)$. Com isso, as predições via bagging são obtidas com base na agregação das predições individuais $\{\hat{y}_{b}(\mathbf{x})\}_{b=1}^B$ de todos esses modelos. No caso de regressão, a agregação tipicamente é feita pela média,
+$$
+\hat{y}_{\mathrm{bag}}(\mathbf{x})  = \frac{1}{B} \sum_{b=1}^B \hat{y}_b(\mathbf{x}), 
+$$
+e em classificação, a classe mais "votada" (moda),
+$$
+\hat{y}_{\mathrm{bag}}(\mathbf{x})  = \underset{c}{\arg \max} \ \# \{b\colon \hat{y_b}(\mathbf{x}) = c\}.
+$$
+
+Bishop (2006) traz, para o caso de regressão, um argumento matemático/estatístico de que esse procedimento garantidamente reduz o erro de predição médio, embora a redução possa ser pequena.
+
+### Outros usos e formas de bagging
+
+Ainda no contexto de árvores de decisão, o bagging pode ser aplicado também em outro sentido, ou melhor, em outra dimensão. Quando o bagging é feito não só no sentido das linhas/observações do conjunto de dados, mas também no sentido das colunas/preditores, temos o que seriam as chamadas florestas aleatórias (*random forests*). Esse tema será abordado pelo grupo seguinte.
+
+## Exemplo: Câncer de mama
+
+Apresentaremos um exemplo de bagging em árvores de decisão utilizando um [conjunto de dados](https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic) sobre câncer de mama. O objetivo é identificar, com base em suas características, se tumores de mama são malignos ou benignos, isto é, se as células anormais têm tendência a se espalhar para outras partes do corpo ou não.
+
+::: {#fig-breast-cancer}
+![](https://today.duke.edu/sites/default/files/legacy-files/styles/story_hero/public/BreastCancerCells.jpg?itok=oUYQjjzL){width=60%}
+
+Células de câncer de mama ([Duke Today](https://today.duke.edu/2016/11/breast-cancer-cells-starve-cystine)).
+:::
+
+As trinta variáveis preditoras do conjunto foram computadas a partir de uma imagem microscópica de tecido extraído do tumor via punção aspirativa por agulha fina (PAAF). Elas descrevem características dos núcleos de células presentes na imagem (raio, textura, perímetro, área, suavidade, compacidade, concavidade, pontos de concavidade, simetria e dimensão fractal), resumidas em média (*mean*), erro-padrão (*se*) e pior (*worst*, a média dos três maiores valores).
+
+```{r}
+library(tidyverse)
+breast_cancer <- read_csv("breast_cancer.csv")
+breast_cancer <- breast_cancer |>
+  select(-id, -...33) |>
+  janitor::clean_names()
+
+glimpse(breast_cancer)
+```
+
+Os tumores do conjunto de dados estão divididos em 63% de casos malignos e 37% de casos benignos.
+
+```{r}
+breast_cancer |>
+  group_by(diagnosis) |>
+  summarise(n = n()) |>
+  mutate(frac = n / sum(n))
+```
+
+### Árvore de decisão
+
+Usando o pacote `caret`, podemos ajustar uma árvore de decisão por meio do método `rpart`. Para ajustar a árvore, precisamos definir o parâmetro de complexidade `cp`, que dita se "vale a pena" fazer um split em um dado nó da árvore. Em síntese, valores próximos de zero facilitam os splits e valores próximos de um dificultam.
+
+Para ajustar o parâmetro `cp`, nos baseamos na validação cruzada 10-*fold*. Os valores experimentados e as respectivas acurácia de classificação obtidas de validação são exibidos logo em seguida e na @fig-rpart-cp. Nesse caso, o valor ótimo foi `cp = 0`, que trouxe uma acurácia de 93%.
+
+```{r}
+#| eval: true
+set.seed(42)
+
+library(caret)
+rpart_fit <- train(
+  diagnosis ~ .,
+  data = breast_cancer,
+  method = "rpart",
+  # Validação cruzada 10-fold
+  trControl = trainControl(method = "cv", number = 10),
+  tuneLength = 10,
+)
+rpart_fit
+```
+
+```{r}
+#| label: fig-rpart-cp
+#| fig-cap: "Acurácia de validação da árvore de decisão em função do parâmetro de complexidade ($\\mathrm{cp}$)."
+#| echo: false
+plot(rpart_fit)
+```
+
+
+```{r}
+#| label: fig-rpart-tree
+#| fig-cap: "Árvore de decisão para classificação dos tumores."
+
+library(rpart.plot)
+rpart.plot(rpart_fit$finalModel)
+```
+
+Agora, para ilustrar a instabilidade das árvores de decisão, vamos retirar um subconjunto aleatório pequeno de 5% das observações do conjunto de treinamento e ver o que acontece com o resultado. Isso é feito duas vezes e os resultados são mostrados na @fig-rpart-tree2 a seguir.
+
+```{r}
+#| label: fig-rpart-tree2
+#| fig-cap: "Árvore de decisão para classificação dos tumores, após retirar cinco porcento das observações."
+set.seed(42)
+
+par(mfrow = c(1, 2))
+for(i in 1:2){
+  rpart_fit2 <- train(
+    diagnosis ~ .,
+    # Remoção de 5% dos dados
+    data = slice_sample(breast_cancer, n = 540, replace = FALSE),
+    method = "rpart",
+    # Validação cruzada 10-fold
+    trControl = trainControl(method = "cv", number = 10),
+    tuneLength = 10,
+  )
+  rpart.plot(rpart_fit2$finalModel)
+}
+```
+
+Veja que após a retirada de poucas observações temos árvores completamente diferentes da primeira, desde o nó inicial. Não só temos diferentes variáveis nos splits, como as árvores possuem diferentes profundidades.
+
+### Bagging de árvores de decisão
+
+Agora vamos experimentar o conceito de bagging nas árvores de decisão. Novamente usaremos o pacote `caret`. Mas, antes de tudo, os dados serão particionados em treino (80%) e teste (20%), para que ao final possamos testar o modelo.
+
+```{r}
+#| eval: true
+library(caret)
+library(rpart)
+
+set.seed(42)
+train_idxs <- createDataPartition(breast_cancer$diagnosis, p = .8, 
+                                  list = FALSE,
+                                  times = 1)
+
+breast_train <- breast_cancer[train_idxs, ]
+breast_test <- breast_cancer[-train_idxs, ]
+```
+
+Agora podemos ajustar as àrvores com bagging usando o método `treebag` do pacote `caret`. Definimos o número de árvores no ensemble como `nbagg = 40` (outros valores na @fig-treebag-nbagg), e os parâmetros das árvores `minsplit = 2` e `cp = 0`, seguindo os resultados obtidos anteriormente. Nesse caso, a acurácia foi de 94%, um pouco maior que o árvore de decisão simples.
+
+```{r}
+#| cache: true
+set.seed(42)
+
+treebag_fit <- train(
+  diagnosis ~ .,
+  data = breast_train,
+  method = "treebag",
+  # Validação cruzada 10-fold
+  trControl = trainControl(method = "cv", number = 10),
+  # Número de árvores
+  nbagg = 40,
+  # Parâmetros das árvores, ver help(rpart.control)
+  control = rpart.control(minsplit = 2, cp = 0)
+)
+treebag_fit
+```
+
+
+```{r}
+#| echo: false
+#| cache: true
+nbagg <- seq(10, 100, by = 10)
+
+treebag_fits <- map(nbagg, ~ {
+  train(
+    diagnosis ~ .,
+    data = breast_train,
+    method = "treebag",
+    # Validação cruzada 10-fold
+    trControl = trainControl(method = "cv", number = 10),
+    # Número de árvores
+    nbagg = .x,
+    # Parâmetros das árvores, ver help(rpart.control)
+    control = rpart.control(minsplit = 2, cp = 0)
+  )
+})
+```
+
+Note pela @fig-treebag-nbagg abaixo que, para todos os números de árvores testados, as acurácias das árvores de decisão com bagging são melhores que a acurácia da árvore de decisão simples (linha pontilhada azul) que testamos inicialmente. Vemos ainda que, nesse caso, a acurácia não muda muito com o número de árvores, e também que 40 árvores já são suficientes.
+
+```{r}
+#| label: fig-treebag-nbagg
+#| fig-cap: "Acurácia de validação cruzada 10-fold da árvore de decisão com bagging em função do tamanho do ensemble (número de árvores)."
+#| echo: false
+qplot(nbagg, map_dbl(treebag_fits, ~ .x$results$Accuracy),
+      geom = "line")+
+  geom_abline(intercept = 0.9313877, slope = 0,
+              linetype = "dashed", color = "blue")+
+  lims(y = c(0.90, 1))+
+  labs(x = "Quantidade de árvores (nbagg)", y = "Acurácia")
+```
+
+De modo geral, os resultados melhorarão conforme se aumenta o número de árvores, mas rapidamente o ganho se torna insignificante frente ao custo computacional. Felizmente, embora o número ótimo de árvores dependa do conjunto de dados, dificilmente serão necessárias mais que 100 árvores para obter um bom resultado. No pacote `caret`, inclusive, o padrão é `nbagg = 25`.
+
+A matriz de confusão a seguir mostra que, no conjunto de treinamento, todos os tumores são classificados corretamente, indicando que o voto majoritário das árvores foi correto em todos os casos.
+
+```{r}
+diagnosis_pred <- predict(treebag_fit)
+xtabs(~ diagnosis_pred + diagnosis, data = breast_train)
+```
+
+Já no conjunto de teste, temos apenas 3 de 113 (3%) tumores classificados incorretamente.
+
+```{r}
+diagnosis_pred <- predict(treebag_fit, breast_test)
+xtabs(~ diagnosis_pred + diagnosis, data = breast_test)
+```
+
+## Referências
+
+- Breiman L., Friedman J. H., Olshen R. A., and Stone, C. J. (1984). **`Classification and Regression Trees`**. Wadsworth, Belmont.
+
+- Breiman L. (1996). **`Bagging Predictors`**. Machine Learning, Boston.
+
+- Izenman, A. J. (2008). **`Modern Multivariate Statistical Techniques: Regression, Classification, and Manifold Learning`**. Springer, New York.
+
+- Kuhn, M. (2008). **`Building Predictive Models in R Using the caret Package``**. Journal of Statistical Software.
+
+- Awan, A. A., DataCamp (2023). [**``What is Bagging in Machine Learning? A Guide With Examples``**](https://datacamp.com/tutorial/what-bagging-in-machine-learning-a-guide-with-examples).

@@ -1,0 +1,20 @@
+\usepackage{bm}
+\usepackage{fancyhdr}
+\usepackage{fancyvrb}
+\fvset{frame=single, samepage=true}
+
+% Nomes customizáveis
+\newcommand{\disciplina}{Tópicos em Estatística 2}
+\newcommand{\professor}{George von Borries}
+\newcommand{\nlista}{1}
+\newcommand{\subtitulo}{}
+\newcommand{\solucao}{\textbf{Solução: }\noindent\dotfill}
+
+\fancyhf{}               % Clear fancy header/footer
+%\fancyfoot[L]{Universidade de Brasília}   % My name in Left footer
+\fancyhead[L]{\disciplina}  % Page number in Right footer
+\fancyhead[C]{Lista \nlista}  % Page number in Right footer
+\fancyhead[R]{\thepage}  % Page number in Right footer
+\thispagestyle{empty}
+
+\allowdisplaybreaks
