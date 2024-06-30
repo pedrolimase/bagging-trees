@@ -288,7 +288,7 @@ xtabs(~ diagnosis_pred + diagnosis, data = breast_train)
 Já no conjunto de teste, temos apenas 3 de 113 (3%) tumores classificados incorretamente.
 
 ```{r}
-diagnosis_pred <- predict(treebag_fit, breast_test)
+diagnosis_pred <- predict(treebag_fit, breast_test) 
 xtabs(~ diagnosis_pred + diagnosis, data = breast_test)
 ```
 
