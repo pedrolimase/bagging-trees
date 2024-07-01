@@ -28,8 +28,9 @@ Tópicos em Estatística 2 \hfill \textbf{Prof.:} George von Borries
 
 \begin{center}
   \today \\
-  \Large \textbf{Bagging em Árvores de Decisão: \\
-  Melhorando a estabilidade e acurácia \\ {\normalsize Grupo 3}} \\
+  {\Large \textbf{Bagging em Árvores de Decisão:} \\
+  {\large \textbf{Melhorando a estabilidade e acurácia de modelos preditivos}} \\
+  {\normalsize Grupo 3}} \\
   Joao Victor de Oliveira Nogueira \\
   Pedro Henrique Lima de Menezes \\
   Rafael Costa Ramos \\
@@ -55,6 +56,17 @@ Tópicos em Estatística 2 \hfill \textbf{Prof.:} George von Borries
 #   (Bruno, João Alberto, João Pedro, Stefan)
 ```
 
+```{r}
+#| eval: false
+#| echo: false
+
+library(tidyverse)
+library(caret)
+library(rpart)
+library(rpart.plot)
+```
+
+
 ## O que são ensembles?
 
 O *ensemble* é uma técnica de machine learning que combina múltiplos modelos de classificação ou regressão buscando aumentar a estabilidade e acurácia para além de qualquer modelo individual que o compõe. A motivação é a mesma da ideia de que os votos ou palpites de um grupo de pessoas serão em geral melhores que os votos ou palpites de uma dessas pessoas apenas (sabedoria das multidões).
@@ -75,7 +87,7 @@ O Bagging é um algoritmo de ensemble que agrega múltiplas *versões* de um mes
 
 Apesar de podermos aplicar o bagging sobre qualquer método preditivo, ele é particularmente útil para métodos instáveis, cujas estimativas variam muito de ajuste para ajuste. E esse é o caso das árvores de decisão.
 
-A natureza de particionamento das árvores de decisão fornece flexibilidade e capacidade de ajuste ilimitados a elas. Isto é, com *splits* suficientes, é sempre possível obter o ajuste "perfeito". Porém isso vem a dois custos principais:
+A natureza de particionamento das árvores de decisão fornece flexibilidade e capacidade de ajuste ilimitados a elas. Isto é, se dermos a cada observação seu próprio nó, é possível obter o ajuste "perfeito". Porém isso vem a dois custos principais:
 
 (i) Árvores de decisão facilmente podem não generalizar bem para fora do conjunto de treinamento (*overfitting*) se não ajustadas e validadas com cuidado;
 
@@ -104,7 +116,9 @@ $$
 \hat{y}_{\mathrm{bag}}(\mathbf{x})  = \underset{c}{\arg \max} \ \# \{b\colon \hat{y_b}(\mathbf{x}) = c\}.
 $$
 
-Bishop (2006) traz, para o caso de regressão, um argumento matemático/estatístico de que esse procedimento garantidamente reduz o erro de predição médio, embora a redução possa ser pequena.
+Denote por $(\mathcal{D} - \mathcal{D}_b)$ as observações do conjunto de dados que não foram selecionadas na $b$-ésima amostra bootstrap. Essas observações são chamadas de *out-of-bag* (OOB) e podem ser usadas como dados de teste, dispensando o uso de validação cruzada. A média dos erros médios dos modelos em suas respectivas amostras OOBs é chamado de erro OOB.
+
+Bishop (2006) traz, para o caso de regressão, um argumento matemático/estatístico de que esse procedimento de bagging garantidamente reduz o erro de predição médio, embora a redução possa ser pequena.
 
 ### Outros usos e formas de bagging
 
@@ -132,7 +146,7 @@ breast_cancer <- breast_cancer |>
 glimpse(breast_cancer)
 ```
 
-Os tumores do conjunto de dados estão divididos em 63% de casos malignos e 37% de casos benignos.
+Os tumores do conjunto de dados estão divididos em 63% de casos malignos (M) e 37% de casos benignos (B).
 
 ```{r}
 breast_cancer |>
@@ -170,6 +184,7 @@ rpart_fit
 plot(rpart_fit)
 ```
 
+A Figura @fig-rpart-tree apresenta a árvore de decisão escolhida na validação cruzada. Em cada nó temos o tipo de câncer predito (mais provável) até aquele nó, a proporção de casos malignos (M) e a porcentagem de pacientes no nó.
 
 ```{r}
 #| label: fig-rpart-tree
@@ -179,7 +194,7 @@ library(rpart.plot)
 rpart.plot(rpart_fit$finalModel)
 ```
 
-Agora, para ilustrar a instabilidade das árvores de decisão, vamos retirar um subconjunto aleatório pequeno de 5% das observações do conjunto de treinamento e ver o que acontece com o resultado. Isso é feito duas vezes e os resultados são mostrados na @fig-rpart-tree2 a seguir.
+Agora, para ilustrar a instabilidade das árvores de decisão, vamos retirar um subconjunto aleatório pequeno de 5% das observações de treinamento e ver o que acontece com o resultado. Isso é feito duas vezes e os resultados são mostrados na @fig-rpart-tree2.
 
 ```{r}
 #| label: fig-rpart-tree2
@@ -213,15 +228,83 @@ library(caret)
 library(rpart)
 
 set.seed(42)
-train_idxs <- createDataPartition(breast_cancer$diagnosis, p = .8, 
-                                  list = FALSE,
-                                  times = 1)
+in_train <- createDataPartition(breast_cancer$diagnosis, p = .8, 
+                                list = FALSE,
+                                times = 1)
 
-breast_train <- breast_cancer[train_idxs, ]
-breast_test <- breast_cancer[-train_idxs, ]
+breast_train <- breast_cancer[in_train, ]
+breast_test <- breast_cancer[-in_train, ]
 ```
 
-Agora podemos ajustar as àrvores com bagging usando o método `treebag` do pacote `caret`. Definimos o número de árvores no ensemble como `nbagg = 40` (outros valores na @fig-treebag-nbagg), e os parâmetros das árvores `minsplit = 2` e `cp = 0`, seguindo os resultados obtidos anteriormente. Nesse caso, a acurácia foi de 94%, um pouco maior que o árvore de decisão simples.
+Agora podemos ajustar as àrvores com bagging usando o método `treebag` do pacote `caret`. Seguindo os resultados obtidos anteriormente, definimos os parâmetros das árvores como `minsplit = 2` e `cp = 0`. A Figura @fig-treebag-nbagg mostra as acurácias obtidas na validação cruzada 10-fold e no out-of-bag para diferentes números de árvores no bagging.
+
+```{r}
+#| echo: true
+#| cache: true
+
+set.seed(42)
+nbagg <- seq(10, 50, by = 10)
+
+tb_nbagg_cv <- map(nbagg, ~ {
+  tb_fit <- train(
+    diagnosis ~ .,
+    data = breast_train,
+    method = "treebag",
+    # Validação cruzada 10-fold
+    trControl = trainControl(method = "cv", number = 10),
+    # Número de árvores
+    nbagg = .x,
+    # Parâmetros das árvores, ver help(rpart.control)
+    control = rpart.control(minsplit = 2, cp = 0)
+  )
+  tb_fit$results
+})
+
+tb_nbagg_oob <- map(nbagg, ~ {
+  tb_fit <- train(
+    diagnosis ~ .,
+    data = breast_train,
+    method = "treebag",
+    # Validação out-of-bag
+    trControl = trainControl(method = "none"),
+    coob = TRUE,
+    keepX = TRUE,
+    # Número de árvores
+    nbagg = .x,
+    # Parâmetros das árvores
+    control = rpart.control(minsplit = 2, cp = 0)
+  )
+  tb_code <- getModelInfo("treebag")[[1]]
+  tb_code$oob(tb_fit$finalModel)
+})
+```
+
+```{r}
+#| label: fig-treebag-nbagg
+#| fig-cap: "Acurácia de validação cruzada 10-fold e OOB da árvore de decisão com bagging em função do tamanho do ensemble (número de árvores)."
+#| echo: false
+p1 <- 
+  qplot(nbagg, map_dbl(tb_nbagg_cv, ~ .x$Accuracy),
+      geom = "line")+
+  geom_abline(intercept = 0.9313877, slope = 0,
+              linetype = "dashed", color = "blue")+
+  lims(y = c(0.90, 1))+
+  labs(x = "Quantidade de árvores (nbagg)", y = "Acurácia",
+       title = "CV 10-fold")
+
+p2 <- 
+  qplot(nbagg, map_dbl(tb_nbagg_oob, ~ .x[1]),
+      geom = "line")+
+  lims(y = c(0.90, 1))+
+  labs(x = "Quantidade de árvores (nbagg)", y = "Acurácia",
+       title = "Out-of-bag")
+
+library(patchwork)
+(p1 + p2) +
+  plot_layout(axis_titles = "collect")
+```
+
+Note que, para todos os números de árvores testados, as acurácias no CV das árvores de decisão com bagging são melhores que a acurácia da árvore de decisão simples (linha pontilhada azul) que testamos inicialmente. Vemos ainda que, nesse caso, a acurácia não muda muito com o número de árvores `nbagg`, e que 30 árvores já são suficientes para uma acurácia de 94%, um pouco maior que o árvore de decisão simples.
 
 ```{r}
 #| cache: true
@@ -234,51 +317,16 @@ treebag_fit <- train(
   # Validação cruzada 10-fold
   trControl = trainControl(method = "cv", number = 10),
   # Número de árvores
-  nbagg = 40,
+  nbagg = 30,
   # Parâmetros das árvores, ver help(rpart.control)
   control = rpart.control(minsplit = 2, cp = 0)
 )
 treebag_fit
 ```
 
-
-```{r}
-#| echo: false
-#| cache: true
-nbagg <- seq(10, 100, by = 10)
-
-treebag_fits <- map(nbagg, ~ {
-  train(
-    diagnosis ~ .,
-    data = breast_train,
-    method = "treebag",
-    # Validação cruzada 10-fold
-    trControl = trainControl(method = "cv", number = 10),
-    # Número de árvores
-    nbagg = .x,
-    # Parâmetros das árvores, ver help(rpart.control)
-    control = rpart.control(minsplit = 2, cp = 0)
-  )
-})
-```
-
-Note pela @fig-treebag-nbagg abaixo que, para todos os números de árvores testados, as acurácias das árvores de decisão com bagging são melhores que a acurácia da árvore de decisão simples (linha pontilhada azul) que testamos inicialmente. Vemos ainda que, nesse caso, a acurácia não muda muito com o número de árvores, e também que 40 árvores já são suficientes.
-
-```{r}
-#| label: fig-treebag-nbagg
-#| fig-cap: "Acurácia de validação cruzada 10-fold da árvore de decisão com bagging em função do tamanho do ensemble (número de árvores)."
-#| echo: false
-qplot(nbagg, map_dbl(treebag_fits, ~ .x$results$Accuracy),
-      geom = "line")+
-  geom_abline(intercept = 0.9313877, slope = 0,
-              linetype = "dashed", color = "blue")+
-  lims(y = c(0.90, 1))+
-  labs(x = "Quantidade de árvores (nbagg)", y = "Acurácia")
-```
-
 De modo geral, os resultados melhorarão conforme se aumenta o número de árvores, mas rapidamente o ganho se torna insignificante frente ao custo computacional. Felizmente, embora o número ótimo de árvores dependa do conjunto de dados, dificilmente serão necessárias mais que 100 árvores para obter um bom resultado. No pacote `caret`, inclusive, o padrão é `nbagg = 25`.
 
-A matriz de confusão a seguir mostra que, no conjunto de treinamento, todos os tumores são classificados corretamente, indicando que o voto majoritário das árvores foi correto em todos os casos.
+A matriz de confusão a seguir mostra que, no conjunto de treinamento, apenas 1 dos 455 (0,2%) tumores foi classificado incorretamente.
 
 ```{r}
 diagnosis_pred <- predict(treebag_fit)
@@ -292,6 +340,15 @@ diagnosis_pred <- predict(treebag_fit, breast_test)
 xtabs(~ diagnosis_pred + diagnosis, data = breast_test)
 ```
 
+```{r}
+diagnosis_results <-
+  tibble(prob_M = predict(treebag_fit, breast_test, type = "prob")$M,
+         pred = predict(treebag_fit, breast_test, type = "raw"),
+         actual = breast_test$diagnosis)
+diagnosis_results
+```
+
+
 ## Referências
 
 - Breiman L., Friedman J. H., Olshen R. A., and Stone, C. J. (1984). **`Classification and Regression Trees`**. Wadsworth, Belmont.
@@ -300,6 +357,6 @@ xtabs(~ diagnosis_pred + diagnosis, data = breast_test)
 
 - Izenman, A. J. (2008). **`Modern Multivariate Statistical Techniques: Regression, Classification, and Manifold Learning`**. Springer, New York.
 
-- Kuhn, M. (2008). **`Building Predictive Models in R Using the caret Package``**. Journal of Statistical Software.
+- Kuhn, M. (2008). **`Building Predictive Models in R Using the caret Package`**. Journal of Statistical Software.
 
 - Awan, A. A., DataCamp (2023). [**``What is Bagging in Machine Learning? A Guide With Examples``**](https://datacamp.com/tutorial/what-bagging-in-machine-learning-a-guide-with-examples).
