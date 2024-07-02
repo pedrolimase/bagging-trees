@@ -184,7 +184,7 @@ rpart_fit
 plot(rpart_fit)
 ```
 
-A Figura @fig-rpart-tree apresenta a árvore de decisão escolhida na validação cruzada. Em cada nó temos o tipo de câncer predito (mais provável) até aquele nó, a proporção de casos malignos (M) e a porcentagem de pacientes no nó.
+A @fig-rpart-tree apresenta a árvore de decisão escolhida na validação cruzada. Em cada nó temos o tipo de câncer predito (mais provável) até aquele nó, a proporção de casos malignos (M) e a porcentagem de pacientes no nó.
 
 ```{r}
 #| label: fig-rpart-tree
@@ -236,7 +236,7 @@ breast_train <- breast_cancer[in_train, ]
 breast_test <- breast_cancer[-in_train, ]
 ```
 
-Agora podemos ajustar as àrvores com bagging usando o método `treebag` do pacote `caret`. Seguindo os resultados obtidos anteriormente, definimos os parâmetros das árvores como `minsplit = 2` e `cp = 0`. A Figura @fig-treebag-nbagg mostra as acurácias obtidas na validação cruzada 10-fold e no out-of-bag para diferentes números de árvores no bagging.
+O bagging de àrvores de decisão também pode ser ajustado no pacote `caret` usando o método `treebag`. Seguindo os resultados obtidos anteriormente, definimos os parâmetros das árvores como `minsplit = 2` e `cp = 0`. A @fig-treebag-nbagg mostra as acurácias obtidas na validação cruzada 10-fold e no out-of-bag para diferentes números de árvores no bagging.
 
 ```{r}
 #| echo: true
@@ -281,7 +281,7 @@ tb_nbagg_oob <- map(nbagg, ~ {
 
 ```{r}
 #| label: fig-treebag-nbagg
-#| fig-cap: "Acurácia de validação cruzada 10-fold e OOB da árvore de decisão com bagging em função do tamanho do ensemble (número de árvores)."
+#| fig-cap: "Acurácia de validação cruzada 10-fold e OOB do bagging de árvores de decisão em função do tamanho do ensemble (número de árvores)."
 #| echo: false
 p1 <- 
   qplot(nbagg, map_dbl(tb_nbagg_cv, ~ .x$Accuracy),
@@ -304,7 +304,7 @@ library(patchwork)
   plot_layout(axis_titles = "collect")
 ```
 
-Note que, para todos os números de árvores testados, as acurácias no CV das árvores de decisão com bagging são melhores que a acurácia da árvore de decisão simples (linha pontilhada azul) que testamos inicialmente. Vemos ainda que, nesse caso, a acurácia não muda muito com o número de árvores `nbagg`, e que 30 árvores já são suficientes para uma acurácia de 94%, um pouco maior que o árvore de decisão simples.
+Note que, para todos os números de árvores testados, as acurácias no CV do bagging de árvores de decisão são melhores que a acurácia da árvore de decisão simples (linha pontilhada azul) que testamos inicialmente. Vemos ainda que, nesse caso, a acurácia não muda muito com o número de árvores `nbagg`, e que 30 árvores já são suficientes para uma acurácia de 94%, um pouco maior que o árvore de decisão simples.
 
 ```{r}
 #| cache: true
